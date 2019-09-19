@@ -68,10 +68,11 @@ class Commander:
         return self.frameSync+trCal
     
 
-    def toPulses(self, msg):
+    def toPulses(self, msg, ints=False):
         '''
         Outputs a message as reader pulses
 
+        :param ints: when set to True, converts the ouput to integers
         :returns: list of durations in us
         '''
         # select start
@@ -85,7 +86,9 @@ class Commander:
             pulses.extend(self.data1 if bit == 1 else self.data0)
         
         # convert to ints for microcontroller compatibility
-        pulses = [int(p) for p in pulses]
+        if ints:
+            pulses = [int(p) for p in pulses]
+        
         return pulses
     
 
