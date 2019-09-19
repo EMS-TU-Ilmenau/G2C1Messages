@@ -141,7 +141,7 @@ class Message:
     
 
     def __str__(self):
-        return '{}({})'.format(self.__class__.__name__, ', '.join(str(p.value) for p in self.parts))
+        return '{}({})'.format(self.__class__.__name__, ', '.join(str(p.value) for p in self.parts[1:]))
     
 
     def add(self, part):
