@@ -1,6 +1,7 @@
 from base import crc5 # to test checksum
 from messages import Query, QueryRep # to test commands
-from reader import Commander # to test reader symbol generation
+from reader import Commander # to test reader functionalities
+from tag import Responder # to test tag functionalities
 
 
 def testCRC5():
@@ -27,7 +28,7 @@ def testMessage(Msg, validValues, validBits):
     Tests a message
     '''
     print('Testing '+Msg.__name__)
-    msg = Query(*validValues)
+    msg = Msg(*validValues)
     
     # test to bits
     testBits = msg.toBits()
@@ -35,7 +36,7 @@ def testMessage(Msg, validValues, validBits):
         raise ValueError('Invalid bits {} for {}'.format(testBits, msg))
 
     # test to values
-    msgEmpty = Query(*(len(validValues)*[None]))
+    msgEmpty = Msg(*(len(validValues)*[None]))
     msgEmpty.toValue(validBits)
     if not all(v == part.value for v, part in zip(validValues, msgEmpty.parts[1:])):
         raise ValueError('Invalid values in {} for bits {}'.format(msgEmpty, validBits))
@@ -50,7 +51,7 @@ def testCommander():
     def visualize(pulses, samplerate=1e6):
         # visualize pulses as sample magnitudes
         samples = com.toSamples(pulses, samplerate)
-        sampleStr = ''.join('.' if s < 0.5 else '´' for s in samples)
+        sampleStr = ''.join('_' if s < 0.5 else '\u203e' for s in samples)
         print(sampleStr)
 
     # test query because of the preamble
@@ -66,6 +67,29 @@ def testCommander():
     visualize(pulses)
 
 
+def testResponder(Msg):
+    '''
+    Tests the parsing of reader commands
+    '''
+    # generate samples from reader command
+    com = Commander()
+    msg = Msg()
+    print('Testing responder with {}'.format(msg))
+    pulses = com.toPulses(msg)
+    samples = com.toSamples(pulses)
+    # try to parse with tag
+    resp = Responder()
+    edges = resp.fromSamples(samples, synth=True)
+    bits = resp.fromEdges(edges)
+    # check if same
+    if bits != msg.toBits():
+        print('actual pulses: {}'.format(pulses))
+        print('parsed edge durations: {}'.format(edges))
+        print('parsed bits: {}'.format(bits))
+        print('actual bits: {}'.format(msg.toBits()))
+        raise ValueError('Invalid parsed bits')
+
+
 if __name__ == '__main__':
     testCRC5()
     testMessage(
@@ -73,3 +97,5 @@ if __name__ == '__main__':
         [64/3, 1, False, 'all1', 1, 'b', 1], 
         [1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1])
     testCommander()
+    testResponder(Query)
+    testResponder(QueryRep)
