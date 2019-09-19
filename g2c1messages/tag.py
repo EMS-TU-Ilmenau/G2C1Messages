@@ -17,15 +17,44 @@ class Responder:
         self.blf = None
     
 
-    def fromSamples(self, samples, samplerate=1e6):
+    def fromSamples(self, samples, samplerate=1e6, synth=False):
         '''
         Converts sample magnitudes to raising edge durations
 
         :param samples: list of sample magnitudes
         :param samplerate: sample rate in Hz
+        :param synth: when set to True, extends the samples by artifical start and end
         :returns: list of durations in us
         '''
-        raise NotImplementedError('Conversion yet undefined')
+        sMin = min(samples)
+        sMax = max(samples)
+        
+        if synth:
+            # insert sythetic start
+            start = [sMin]+int(100*samplerate*1e-6)*[sMax]
+            samples = start+samples
+            # insert synthetic end
+            samples += [sMax]
+
+        # very simple algorithm at the moment
+        thresh = 0.5*(sMin+sMax)
+        def binLevel(sample):
+            return 1. if sample > thresh else 0.
+        
+        oldLevel = binLevel(samples[0])
+        raisedTime = 0.
+        edges = []
+        for sample in samples:
+            newLevel = binLevel(sample)
+            # raising edge
+            if newLevel > oldLevel:
+                edges.append(raisedTime*1e6)
+                raisedTime = 0. # reset
+            
+            raisedTime += 1./samplerate # count duration
+            oldLevel = newLevel # remember old binary level
+        
+        return edges[1:]
     
 
     def fromEdges(self, edges):
@@ -53,9 +82,6 @@ class Responder:
                     else:
                         self.reset() # unexpected symbol after aquiring tari
                 else:
-                    # wait for end
-                    if bits and dNew >= self.tari-tolerance and dNew <= 2*self.tari+tolerance:
-                        break
                     # wait either for tag -> reader calibration symbol OR data
                     if not self.trCal and dNew >= 1.1*self.rtCal-tolerance and dNew <= 3*self.rtCal+tolerance:
                         self.trCal = dNew # full reader -> tag preamble (query command)
