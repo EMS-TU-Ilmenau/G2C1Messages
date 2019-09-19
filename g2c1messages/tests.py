@@ -1,7 +1,7 @@
-from base import crc5 # to test checksum
-from messages import Query, QueryRep # to test commands
-from reader import Commander # to test reader functionalities
-from tag import Responder # to test tag functionalities
+from .base import crc5 # to test checksum
+from .messages import Query, QueryRep # to test commands
+from .command import Reader # to test reader functionalities
+from .respond import Tag # to test tag functionalities
 
 
 def testCRC5():
@@ -46,7 +46,7 @@ def testCommander():
     '''
     Tests the generation of reader commands
     '''
-    com = Commander()
+    com = Reader()
 
     def visualize(pulses, samplerate=1e6):
         # visualize pulses as sample magnitudes
@@ -72,13 +72,13 @@ def testResponder(Msg):
     Tests the parsing of reader commands
     '''
     # generate samples from reader command
-    com = Commander()
+    com = Reader()
     msg = Msg()
     print('Testing responder with {}'.format(msg))
     pulses = com.toPulses(msg)
     samples = com.toSamples(pulses)
     # try to parse with tag
-    resp = Responder()
+    resp = Tag()
     edges = resp.fromSamples(samples, synth=True)
     bits = resp.fromEdges(edges)
     # check if same

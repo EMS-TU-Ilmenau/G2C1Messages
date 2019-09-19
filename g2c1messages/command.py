@@ -1,7 +1,7 @@
-from messages import Query # to get type of special message
+from .messages import Query # to get type of special message
 
 
-class Commander:
+class Reader:
     '''
     Outputs a message as reader command pulses. 
     Pulses are durations in us, toggling power level, first low.

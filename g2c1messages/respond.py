@@ -1,4 +1,4 @@
-class Responder:
+class Tag:
     '''
     Parses pulses from commander and respond 
     with tag pulses

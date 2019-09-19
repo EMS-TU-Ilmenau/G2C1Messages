@@ -1,4 +1,4 @@
-from base import Constant, LookUp, Value, Message, crc5 # to generate message bits and checksum
+from .base import Constant, LookUp, Value, Message, crc5 # to generate message bits and checksum
 
 
 class Query(Message):
