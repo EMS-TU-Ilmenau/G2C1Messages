@@ -1,7 +1,7 @@
-from .base import crc5 # to test checksum
-from .messages import Query, QueryRep # to test commands
-from .command import Reader # to test reader functionalities
-from .respond import Tag # to test tag functionalities
+from g2c1.base import crc5 # to test checksum
+from g2c1.messages import Query, QueryRep # to test commands
+from g2c1.command import Reader # to test reader functionalities
+from g2c1.respond import Tag # to test tag functionalities
 
 
 def testCRC5():

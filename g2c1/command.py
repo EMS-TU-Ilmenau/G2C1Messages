@@ -6,13 +6,22 @@ class Reader:
     Outputs a message as reader command pulses. 
     Pulses are durations in us, toggling power level, first low.
     '''
-    def __init__(self, tariUs=12, blfKHz=320):
+    def __init__(self, tariUs=12, blfKHz=320, port=None):
         '''
         :param tariUs: reader data-0 symbol length in us
         :param blfKHz: tag backscatter frequency in KHz
+        :param port: can be set to a string containing a serial port to send commands
         '''
         self.tari = tariUs
         self.blf = blfKHz
+        self.dev = None
+        if port:
+            try:
+                import serial # for RS232/UART/COM port
+            except ImportError:
+                print('Install pyserial package to use this feature')
+            else:
+                self.dev = serial.Serial(port, 9600, timeout=2)
     
 
     @property
@@ -72,6 +81,7 @@ class Reader:
         '''
         Outputs a message as reader pulses
 
+        :param msg: message object
         :param ints: when set to True, converts the ouput to integers
         :returns: list of durations in us
         '''
@@ -110,3 +120,16 @@ class Reader:
             level = abs(1.-level)
         
         return samples
+    
+
+    def sendMsg(self, msg):
+        '''
+        Sends a message as pulses via serial port
+
+        :param msg: message object
+        '''
+        if not self.dev:
+            raise AttributeError('Serial port not given upon instantiation')
+
+        pulses = self.toPulses(msg, True)
+        self.dev.write(bytes(pulses)+b'\n')

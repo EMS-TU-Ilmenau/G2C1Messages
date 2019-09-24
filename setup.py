@@ -7,5 +7,5 @@ setup(name='g2c1',
     author='Niklas Beuster',
     author_email='niklas.beuster@tu-ilmenau.de',
     license='MIT',
-    packages=['g2c1messages'],
+    packages=['g2c1'],
     zip_safe=False)
