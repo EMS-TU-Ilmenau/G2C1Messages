@@ -122,14 +122,33 @@ class Reader:
         return samples
     
 
-    def sendMsg(self, msg):
+    def sendBytes(self, msgBytes):
         '''
-        Sends a message as pulses via serial port
+        Sends bytes via serial port and appends linefeed
 
-        :param msg: message object
+        :param msgBytes: message bytes to send
         '''
         if not self.dev:
             raise AttributeError('Serial port not given upon instantiation')
 
+        self.dev.write(msgBytes+b'\n')
+    
+
+    def sendMsg(self, msg):
+        '''
+        Starts transmission of message pulses via serial port
+
+        :param msg: message object
+        '''
         pulses = self.toPulses(msg, True)
-        self.dev.write(bytes(pulses)+b'\n')
+        self.sendBytes(b'TX '+bytes(pulses))
+    
+
+    def powerEnable(self, enable=True):
+        '''
+        Enables or disables cw power via serial port
+
+        :param enable: True sets output power on, False disables it
+        '''
+        state = 'ON' if enable else 'OFF'
+        self.sendBytes(bytes('POW '+state, 'ascii'))
