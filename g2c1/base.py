@@ -39,6 +39,26 @@ def crc5(bits):
     return reg
 
 
+def pulsesToSamples(pulses, samplerate=1e6):
+    '''
+    Outputs a list of pulses as sample magnitudes
+    
+    :param pulses: list of durations in us
+    :param samplerate: sample rate in Hz
+    :returns: list of sample magnitudes between 0...1
+    '''
+    level = 0.
+    samples = []
+    for pulse in pulses:
+        # add samples with magnitude
+        nSamples = int(pulse*1e-6*samplerate)
+        samples.extend(nSamples*[level])
+        # toggle level
+        level = abs(1.-level)
+    
+    return samples
+
+
 class Part:
     '''
     Part of a message
