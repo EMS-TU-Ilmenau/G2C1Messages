@@ -24,6 +24,11 @@ class Reader:
                 self.dev = serial.Serial(port, 9600, timeout=2)
     
 
+    def __del__(self):
+        if self.dev:
+            self.dev.close()
+    
+
     @property
     def pw(self):
         '''
@@ -102,26 +107,6 @@ class Reader:
         return pulses
     
 
-    def toSamples(self, pulses, samplerate=1e6):
-        '''
-        Outputs list of pulses as sample magnitudes
-
-        :param pulses: list of durations in us
-        :param samplerate: sample rate in Hz
-        :returns: list of sample magnitudes between 0...1
-        '''
-        level = 0.
-        samples = []
-        for pulse in pulses:
-            # add samples with magnitude
-            nSamples = int(pulse*1e-6*samplerate)
-            samples.extend(nSamples*[level])
-            # switch level
-            level = abs(1.-level)
-        
-        return samples
-    
-
     def sendBytes(self, msgBytes):
         '''
         Sends bytes via serial port and appends linefeed
@@ -131,8 +116,15 @@ class Reader:
         if not self.dev:
             raise AttributeError('Serial port not given upon instantiation')
 
-        self.dev.write(msgBytes+b'\n')
-    
+        for _ in range(2):
+            print('Sending {}'.format(msgBytes+b'\n'))
+            self.dev.write(msgBytes+b'\n')
+            resp = self.dev.readline()
+            if b"1" in resp:
+                break
+        
+        if b"1" not in resp:
+            print('sending {} was not successful'.format(msgBytes))
 
     def sendMsg(self, msg):
         '''
@@ -144,7 +136,7 @@ class Reader:
         self.sendBytes(b'TX '+bytes(pulses))
     
 
-    def powerEnable(self, enable=True):
+    def enablePower(self, enable=True):
         '''
         Enables or disables cw power via serial port
 
