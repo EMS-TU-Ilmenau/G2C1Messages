@@ -1,7 +1,14 @@
-from g2c1.base import crc5 # to test checksum
+from g2c1.base import crc5, pulsesToSamples # to test checksum and convert pulses to samples
 from g2c1.messages import Query, QueryRep # to test commands
 from g2c1.command import Reader # to test reader functionalities
 from g2c1.respond import Tag # to test tag functionalities
+
+
+def visualizePulses(pulses, samplerate=1e6):
+    # visualize pulses as sample magnitudes
+    samples = pulsesToSamples(pulses, samplerate)
+    sampleStr = ''.join('_' if s < 0.5 else '\u203e' for s in samples)
+    print(sampleStr)
 
 
 def testCRC5():
@@ -42,45 +49,39 @@ def testMessage(Msg, validValues, validBits):
         raise ValueError('Invalid values in {} for bits {}'.format(msgEmpty, validBits))
 
 
-def testCommander():
+def testReader():
     '''
     Tests the generation of reader commands
     '''
-    com = Reader()
-
-    def visualize(pulses, samplerate=1e6):
-        # visualize pulses as sample magnitudes
-        samples = com.toSamples(pulses, samplerate)
-        sampleStr = ''.join('_' if s < 0.5 else '\u203e' for s in samples)
-        print(sampleStr)
+    reader = Reader()
 
     # test query because of the preamble
     query = Query()
     print('Testing commander with {}'.format(query))
-    pulses = com.toPulses(query)
-    visualize(pulses)
+    pulses = reader.toPulses(query)
+    visualizePulses(pulses)
 
     # test simpler message with frame-sync only
     queryRep = QueryRep()
     print('Testing commander with {}'.format(queryRep))
-    pulses = com.toPulses(queryRep)
-    visualize(pulses)
+    pulses = reader.toPulses(queryRep)
+    visualizePulses(pulses)
 
 
-def testResponder(Msg):
+def testTag(Msg):
     '''
     Tests the parsing of reader commands
     '''
     # generate samples from reader command
-    com = Reader()
+    reader = Reader()
     msg = Msg()
     print('Testing responder with {}'.format(msg))
-    pulses = com.toPulses(msg)
-    samples = com.toSamples(pulses)
+    pulses = reader.toPulses(msg)
+    samples = pulsesToSamples(pulses)
     # try to parse with tag
-    resp = Tag()
-    edges = resp.fromSamples(samples, synth=True)
-    bits = resp.fromEdges(edges)
+    tag = Tag()
+    edges = tag.fromSamples(samples, synth=True)
+    bits = tag.fromEdges(edges)
     # check if same
     if bits != msg.toBits():
         print('actual pulses: {}'.format(pulses))
@@ -90,12 +91,28 @@ def testResponder(Msg):
         raise ValueError('Invalid parsed bits')
 
 
+def testPhysical():
+    '''
+    Tests the physical execution of commands with 
+    the sequencer via serial port
+    '''
+    reader = Reader(port='/dev/tty.usbserial')
+    msg = Query()
+    print(reader.toPulses(msg, True))
+    reader.enablePower()
+    reader.sendMsg(msg)
+    reader.enablePower(False)
+
+
 if __name__ == '__main__':
+    '''
     testCRC5()
     testMessage(
         Query, 
         [64/3, 1, False, 'all1', 1, 'b', 1], 
         [1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1])
-    testCommander()
-    testResponder(Query)
-    testResponder(QueryRep)
+    testReader()
+    testTag(Query)
+    testTag(QueryRep)
+    '''
+    testPhysical()
