@@ -96,9 +96,11 @@ def testPhysical():
     Tests the physical execution of commands with 
     the sequencer via serial port
     '''
-    reader = Reader(port='/dev/tty.usbserial')
+    reader = Reader(tariUs=24, port='/dev/tty.usbserial')
     msg = Query()
-    print(reader.toPulses(msg, True))
+    pulses = reader.toPulses(msg, True)
+    print(pulses)
+    #visualizePulses(pulses)
     reader.enablePower()
     reader.sendMsg(msg)
     reader.enablePower(False)
