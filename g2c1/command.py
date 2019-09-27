@@ -117,9 +117,8 @@ class Reader:
             raise AttributeError('Serial port not given upon instantiation')
 
         for _ in range(2):
-            print('Sending {}'.format(msgBytes+b'\n'))
-            self.dev.write(msgBytes+b'\n')
-            resp = self.dev.readline()
+            self.dev.write(msgBytes+b'\0') # send
+            resp = self.dev.readline() # receive
             if b"1" in resp:
                 break
         
