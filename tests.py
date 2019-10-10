@@ -96,18 +96,90 @@ def testPhysical():
     Tests the physical execution of commands with 
     the sequencer via serial port
     '''
-    reader = Reader(tariUs=24, port='/dev/tty.usbserial')
-    msg = Query()
+    from rtlsdr import RtlSdr # for controlling the RTL SDR
+    from multiprocessing.pool import ThreadPool # for simultaneous function execution
+    import matplotlib.pyplot as plt # for plotting
+    import numpy as np # for array math
+    from matplotlib.mlab import psd, specgram # for fft
+    from scipy import signal # for filtering
+
+    freqMHz = 866 # reader center frequency
+    blfMHz = 0.32 # tag backscatter link frequency
+    
+    # generate pulses
+    reader = Reader(tariUs=24, blfKHz=blfMHz*1e3, port='COM4')
+    msg = Query(m=8, trExt=True, target='a', q=0)
+    '''
+    # visualize/debug
     pulses = reader.toPulses(msg, True)
     print(pulses)
-    #visualizePulses(pulses)
+    visualizePulses(pulses)
+    '''
+
+    # init sdr
+    sdr = RtlSdr(serial_number='00000001')
+    sdr.sample_rate = 2.048e6
+    sdr.center_freq = freqMHz*1e6
+    sdr.gain = 0
+
+    # get samples asyncronously...
+    pool = ThreadPool(processes=1)
+    sampling = pool.apply_async(sdr.read_samples, (sdr.sample_rate*0.2,))
+    # ...while sending command
     reader.enablePower()
     reader.sendMsg(msg)
     reader.enablePower(False)
+    # block until samples are aquired
+    samples = sampling.get()
+
+    # plot
+    _, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 10))
+    blfStyle = {'linewidth': 1, 'linestyle': 'dashed', 'alpha': 0.6}
+    # time domain
+    timeSec = np.arange(len(samples))/sdr.sample_rate
+    ax1.plot(timeSec, np.abs(samples), linewidth=0.5)
+    ax1.set_xlabel('time [s]')
+    ax1.set_ylabel('magnitude')
+    ax1.grid()
+    
+    # frequency domain
+    nFFT = 512
+    maxHold = False
+    if maxHold:
+        traces, _, _ = specgram(samples, NFFT=nFFT)
+        trace = np.max(traces, axis=1) # max hold over time
+    else:
+        trace, _ = psd(samples, NFFT=nFFT)
+    trace = 20*np.log10(trace) # to dB
+    freqsMHz = np.linspace(sdr.center_freq-sdr.sample_rate/2, sdr.center_freq+sdr.sample_rate/2, nFFT)/1e6
+    ax2.plot(freqsMHz, trace, linewidth=0.5)
+    ax2.set_xlabel('frequency [MHz]')
+    ax2.set_ylabel('magnitude')
+    ax2.grid()
+    # mark tag response
+    ax2.axvline(freqMHz-blfMHz, color='r', **blfStyle)
+    ax2.axvline(freqMHz+blfMHz, color='r', label='backscatter frequency', **blfStyle)
+    ax2.legend(loc='upper right')
+
+    # spectrogram
+    traces, _, _ = specgram(samples)
+    traces = np.clip(20*np.log10(traces), -100, -30)
+    ax3.imshow(traces, extent=(timeSec[0], timeSec[-1], freqsMHz[0], freqsMHz[-1]), aspect='auto', cmap='jet')
+    ax3.axhline(freqMHz-blfMHz, color='w', **blfStyle)
+    ax3.axhline(freqMHz+blfMHz, color='w', label='backscatter frequency', **blfStyle)
+    ax3.legend(loc='upper right')
+
+    plt.show()
+
+    # try to parse with tag
+    tag = Tag()
+    edges = tag.fromSamples(np.abs(samples), sdr.sample_rate)
+    print(edges)
+    bits = tag.fromEdges(edges)
+    print(bits)
 
 
 if __name__ == '__main__':
-    '''
     testCRC5()
     testMessage(
         Query, 
@@ -116,5 +188,4 @@ if __name__ == '__main__':
     testReader()
     testTag(Query)
     testTag(QueryRep)
-    '''
     testPhysical()
