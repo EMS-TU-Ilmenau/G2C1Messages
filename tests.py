@@ -4,11 +4,14 @@ from g2c1.command import Reader # to test reader functionalities
 from g2c1.respond import Tag # to test tag functionalities
 
 
-def visualizePulses(pulses, samplerate=1e6):
+def visualizePulses(pulses, samplerate=1e6, reportLens=True):
+    # print out pulse-lenghts
+    if reportLens:
+        print('Pulse lengths [us]: {}'.format(pulses))
     # visualize pulses as sample magnitudes
     samples = pulsesToSamples(pulses, samplerate)
     sampleStr = ''.join('_' if s < 0.5 else '\u203e' for s in samples)
-    print(sampleStr)
+    print('Pulse magnitudes: {}'.format(sampleStr))
 
 
 def testCRC5():
@@ -188,4 +191,7 @@ if __name__ == '__main__':
     testReader()
     testTag(Query)
     testTag(QueryRep)
-    testPhysical()
+    try:
+        testPhysical()
+    except ImportError:
+        print('Physical test requires additional packages')
