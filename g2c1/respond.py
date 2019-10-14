@@ -3,6 +3,9 @@ class Tag:
     Parses pulses from commander and respond 
     with tag pulses
     '''
+    MIN_TARI = 6.25
+    MAX_TARI = 28
+
     def __init__(self):
         self.reset()
     
@@ -72,7 +75,7 @@ class Tag:
             dNew = edge
             # wait for tari (data0 symbol)
             if not self.tari:
-                if dNew >= 6.25 and dNew <= 25 and dOld > 100:
+                if dNew >= self.MIN_TARI and dNew <= self.MAX_TARI and dOld > 100:
                     self.tari = dNew
             else:
                 # wait for reader -> tag calibration symbol
@@ -86,7 +89,10 @@ class Tag:
                     if not self.trCal and dNew >= 1.1*self.rtCal-tolerance and dNew <= 3*self.rtCal+tolerance:
                         self.trCal = dNew # full reader -> tag preamble (query command)
                     else:
-                        bits.append(1 if dNew > self.rtCal/2 else 0) # data
+                        if dNew < self.tari-tolerance or dNew > 2*self.tari+tolerance:
+                            self.reset() # wrong bit pulse duration
+                        else:
+                            bits.append(1 if dNew > self.rtCal/2 else 0) # data
             
             dOld = dNew
         
