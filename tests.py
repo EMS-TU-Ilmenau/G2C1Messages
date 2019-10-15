@@ -106,11 +106,12 @@ def testPhysical():
     from matplotlib.mlab import psd, specgram # for fft
     from scipy import signal # for filtering
 
+    tariUs = 12 # reader data-0 length in us
     freqMHz = 866 # reader center frequency
     blfMHz = 0.32 # tag backscatter link frequency
     
     # generate pulses
-    reader = Reader(tariUs=12, blfKHz=blfMHz*1e3, port='COM4')
+    reader = Reader(tariUs, blfMHz, 'COM4')
     msg = Query(m=8, trExt=True, target='a', q=0)
     print('Testing physically with {}'.format(msg))
     '''
@@ -144,6 +145,8 @@ def testPhysical():
     ax1.plot(timeSec, np.abs(samples), linewidth=0.5)
     ax1.set_xlabel('time [s]')
     ax1.set_ylabel('magnitude')
+    ax1.set_title('Observed communication with \n'
+        'tari: {}us, freq: {}MHz, blf: {}MHz, {}'.format(tariUs, freqMHz, blfMHz, msg))
     ax1.grid()
     
     # frequency domain
@@ -158,7 +161,7 @@ def testPhysical():
     freqsMHz = np.linspace(sdr.center_freq-sdr.sample_rate/2, sdr.center_freq+sdr.sample_rate/2, nFFT)/1e6
     ax2.plot(freqsMHz, trace, linewidth=0.5)
     ax2.set_xlabel('frequency [MHz]')
-    ax2.set_ylabel('magnitude')
+    ax2.set_ylabel('magnitude [dB]')
     ax2.grid()
     # mark tag response
     ax2.axvline(freqMHz-blfMHz, color='r', **blfStyle)
@@ -183,9 +186,9 @@ def testPhysical():
     print('Parsed raising edge durations: {}'.format(edges))
     bits = tag.fromEdges(edges)
     print('Parsed bits: {}'.format(bits))
-    msg = Query(None, None, None, None, None, None, None)
-    msg.toValue(bits)
-    print('Parsed message: {}'.format(msg))
+    msgEmpty = Query()
+    msgEmpty.toValue(bits)
+    print('Parsed message: {}'.format(msgEmpty))
 
 
 if __name__ == '__main__':
