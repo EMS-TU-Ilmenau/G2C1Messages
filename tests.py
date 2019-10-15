@@ -172,6 +172,8 @@ def testPhysical():
     ax3.axhline(freqMHz-blfMHz, color='w', **blfStyle)
     ax3.axhline(freqMHz+blfMHz, color='w', label='backscatter frequency', **blfStyle)
     ax3.legend(loc='upper right')
+    ax3.set_xlabel('time [s]')
+    ax3.set_ylabel('frequency [MHz]')
 
     plt.show()
 
