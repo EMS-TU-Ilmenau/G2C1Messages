@@ -128,7 +128,7 @@ def testPhysical():
 
     # get samples asyncronously...
     pool = ThreadPool(processes=1)
-    sampling = pool.apply_async(sdr.read_samples, (sdr.sample_rate*0.2,))
+    sampling = pool.apply_async(sdr.read_samples, (sdr.sample_rate*0.05,))
     # ...while sending command
     reader.enablePower()
     reader.sendMsg(msg)
