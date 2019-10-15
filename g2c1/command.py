@@ -21,7 +21,7 @@ class Reader:
             except ImportError:
                 print('Install pyserial package to use this feature')
             else:
-                self.dev = serial.Serial(port, 9600, timeout=2)
+                self.dev = serial.Serial(port, 250000, timeout=2)
     
 
     def __del__(self):
