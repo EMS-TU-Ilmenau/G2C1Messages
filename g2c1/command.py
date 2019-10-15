@@ -6,14 +6,14 @@ class Reader:
     Outputs a message as reader command pulses. 
     Pulses are durations in us, toggling power level, first low.
     '''
-    def __init__(self, tariUs=12, blfKHz=320, port=None):
+    def __init__(self, tariUs=12, blfMHz=0.32, port=None):
         '''
         :param tariUs: reader data-0 symbol length in us
-        :param blfKHz: tag backscatter frequency in KHz
+        :param blfMHz: tag backscatter frequency in MHz
         :param port: can be set to a string containing a serial port to send commands
         '''
         self.tari = tariUs
-        self.blf = blfKHz
+        self.blf = blfMHz
         self.dev = None
         if port:
             try:
@@ -78,7 +78,7 @@ class Reader:
         :param dr: divide ratio
         :returns: list of durations in us
         '''
-        trCal = [dr/(self.blf*1e-3)-self.pw, self.pw] # tag -> reader calibration symbol
+        trCal = [dr/self.blf-self.pw, self.pw] # tag -> reader calibration symbol
         return self.frameSync+trCal
     
 
