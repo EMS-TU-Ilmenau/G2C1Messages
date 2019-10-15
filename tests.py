@@ -110,8 +110,9 @@ def testPhysical():
     blfMHz = 0.32 # tag backscatter link frequency
     
     # generate pulses
-    reader = Reader(tariUs=24, blfKHz=blfMHz*1e3, port='COM4')
+    reader = Reader(tariUs=12, blfKHz=blfMHz*1e3, port='COM4')
     msg = Query(m=8, trExt=True, target='a', q=0)
+    print('Testing physically with {}'.format(msg))
     '''
     # visualize/debug
     pulses = reader.toPulses(msg, True)
@@ -177,9 +178,12 @@ def testPhysical():
     # try to parse with tag
     tag = Tag()
     edges = tag.fromSamples(np.abs(samples), sdr.sample_rate)
-    print(edges)
+    print('Parsed raising edge durations: {}'.format(edges))
     bits = tag.fromEdges(edges)
-    print(bits)
+    print('Parsed bits: {}'.format(bits))
+    msg = Query(None, None, None, None, None, None, None)
+    msg.toValue(bits)
+    print('Parsed message: {}'.format(msg))
 
 
 if __name__ == '__main__':
