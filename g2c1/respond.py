@@ -66,7 +66,6 @@ class Tag:
         :param edges: list of durations in us
         :returns: list of 0/1 ints
         '''
-        tolerance = 1 # tolerance in us
         bits = []
         dNew = 0
         for edge in edges:
@@ -82,7 +81,7 @@ class Tag:
                     self.reset() # unexpected symbol after aquiring tari
             else:
                 # wait either for tag -> reader calibration symbol OR data
-                if not self.trCal and dNew >= 1.1*self.rtCal-tolerance and dNew <= 3*self.rtCal+tolerance:
+                if not self.trCal and dNew >= 1.1*self.rtCal and dNew <= 3*self.rtCal:
                     self.trCal = dNew # full reader -> tag preamble (query command)
                 else:
                     bits.append(1 if dNew > self.rtCal/2 else 0) # data
