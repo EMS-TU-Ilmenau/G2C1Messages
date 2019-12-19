@@ -4,7 +4,7 @@ class Tag:
     with tag pulses
     '''
     MIN_TARI = 6.25
-    MAX_TARI = 28
+    MAX_TARI = 25
 
     def __init__(self):
         self.reset()
@@ -14,10 +14,8 @@ class Tag:
         '''
         Resets all parsed values
         '''
-        self.tari = None
         self.rtCal = None
         self.trCal = None
-        self.blf = None
     
 
     def fromSamples(self, samples, samplerate=1e6, synth=False):
@@ -70,30 +68,23 @@ class Tag:
         '''
         tolerance = 1 # tolerance in us
         bits = []
-        dOld = 0
+        dNew = 0
         for edge in edges:
-            dNew = edge
-            # wait for tari (data0 symbol)
-            if not self.tari:
-                if dNew >= self.MIN_TARI and dNew <= self.MAX_TARI and dOld > 100:
-                    self.tari = dNew
-            else:
-                # wait for reader -> tag calibration symbol
-                if not self.rtCal:
-                    if dNew >= 2.5*self.tari-tolerance and dNew <= 3*self.tari+tolerance:
-                        self.rtCal = dNew # valid rtCal duration
-                    else:
-                        self.reset() # unexpected symbol after aquiring tari
-                else:
-                    # wait either for tag -> reader calibration symbol OR data
-                    if not self.trCal and dNew >= 1.1*self.rtCal-tolerance and dNew <= 3*self.rtCal+tolerance:
-                        self.trCal = dNew # full reader -> tag preamble (query command)
-                    else:
-                        if dNew < self.tari-tolerance or dNew > 2*self.tari+tolerance:
-                            self.reset() # wrong bit pulse duration
-                        else:
-                            bits.append(1 if dNew > self.rtCal/2 else 0) # data
-            
             dOld = dNew
+            dNew = edge
+            if dNew > 100:
+                self.reset()
+            # wait for reader -> tag calibration symbol
+            if not self.rtCal:
+                if dOld >= self.MIN_TARI and dOld <= self.MAX_TARI:
+                    self.rtCal = dNew # valid rtCal duration
+                else:
+                    self.reset() # unexpected symbol after aquiring tari
+            else:
+                # wait either for tag -> reader calibration symbol OR data
+                if not self.trCal and dNew >= 1.1*self.rtCal-tolerance and dNew <= 3*self.rtCal+tolerance:
+                    self.trCal = dNew # full reader -> tag preamble (query command)
+                else:
+                    bits.append(1 if dNew > self.rtCal/2 else 0) # data
         
         return bits
