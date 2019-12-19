@@ -109,7 +109,7 @@ class Reader:
 
     def sendBytes(self, msgBytes):
         '''
-        Sends bytes via serial port and appends linefeed
+        Sends bytes via serial port and awaits confirmation
 
         :param msgBytes: message bytes to send
         '''
@@ -118,11 +118,11 @@ class Reader:
 
         for _ in range(2):
             self.dev.write(msgBytes+b'\0') # send
-            resp = self.dev.readline() # receive
-            if b"1" in resp:
+            resp = self.dev.read_until(b'\0') # receive
+            if b'1' in resp:
                 break
         
-        if b"1" not in resp:
+        if b'1' not in resp:
             print('sending {} was not successful'.format(msgBytes))
 
     def sendMsg(self, msg):
