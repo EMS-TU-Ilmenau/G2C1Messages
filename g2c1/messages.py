@@ -5,7 +5,7 @@ class Query(Message):
     '''
     Reader query command
     '''
-    def __init__(self, dr=64/3, m=1, trExt=False, sel='all1', session=1, target='b', q=1):
+    def __init__(self, dr=64/3, m=1, trExt=False, sel='all1', session=1, target='a', q=0):
         '''
         :param dr: divide ration. 
             Can be 8 or 64/3
