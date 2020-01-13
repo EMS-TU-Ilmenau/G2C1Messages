@@ -191,6 +191,39 @@ def testPhysical():
     print('Parsed message: {}'.format(msgEmpty))
 
 
+def testPhysicalQueryCombos():
+    '''
+    Tests the physical execution of different commands with 
+    the sequencer via serial port
+    '''
+    print('Testing physical query parameter combinations')
+    drs = (8, 64/3)
+    blfs = (0.1, 0.2, 0.3, 0.4)
+    millers = (1, 2, 4, 8)
+    pilots = (False, True)
+    taris = range(7, 25)
+    
+    # prepare reader
+    reader = Reader(port='COM4')
+    reader.enablePower()
+
+    for dr in drs:
+        for blf in blfs:
+            for miller in millers:
+                for pilot in pilots:
+                    for tari in taris:
+                        # set protocol parameters
+                        msg = Query(dr, miller, pilot)
+                        reader.tari = tari
+                        reader.blf = blf
+                        try:
+                            reader.sendMsg(msg)
+                        except:
+                            raise IOError('Could not send {}'.format(msg))
+    
+    reader.enablePower(False)
+
+
 if __name__ == '__main__':
     testCRC5()
     testMessage(
@@ -201,6 +234,7 @@ if __name__ == '__main__':
     testTag(Query)
     testTag(QueryRep)
     try:
+        #testPhysicalQueryCombos()
         testPhysical()
     except ImportError:
         print('Physical test requires additional packages')
