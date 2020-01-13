@@ -122,12 +122,13 @@ class Reader:
             self.dev.write(msgBytes+b'\0') # send
             resp = self.dev.read_until(b'\0') # receive
             if b'1' in resp:
-                break
+                return
             else:
                 print('Re-sending')
         
         if b'1' not in resp:
-            print('Sending {} was not successful'.format(msgBytes))
+            raise IOError('Sending {} was not successful'.format(msgBytes))
+    
 
     def sendMsg(self, msg):
         '''
