@@ -7,7 +7,7 @@ from g2c1.respond import Tag # to test tag functionalities
 def visualizePulses(pulses, samplerate=1e6, reportLens=True):
     # print out pulse-lenghts
     if reportLens:
-        print('Pulse lengths [us]: {}'.format(pulses))
+        print('{} pulses lengths [us]: {}'.format(len(pulses), pulses))
     # visualize pulses as sample magnitudes
     samples = pulsesToSamples(pulses, samplerate)
     sampleStr = ''.join('_' if s < 0.5 else '\u203e' for s in samples)
@@ -52,22 +52,14 @@ def testMessage(Msg, validValues, validBits):
         raise ValueError('Invalid values in {} for bits {}'.format(msgEmpty, validBits))
 
 
-def testReader():
+def testReader(Msg):
     '''
     Tests the generation of reader commands
     '''
     reader = Reader()
-
-    # test query because of the preamble
-    query = Query()
-    print('Testing commander with {}'.format(query))
-    pulses = reader.toPulses(query)
-    visualizePulses(pulses)
-
-    # test simpler message with frame-sync only
-    queryRep = QueryRep()
-    print('Testing commander with {}'.format(queryRep))
-    pulses = reader.toPulses(queryRep)
+    msg = Msg()
+    print('Testing commander with {}'.format(msg))
+    pulses = reader.toPulses(msg)
     visualizePulses(pulses)
 
 
@@ -230,7 +222,8 @@ if __name__ == '__main__':
         Query, 
         [64/3, 1, False, 'all1', 1, 'b', 1], 
         [1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1])
-    testReader()
+    testReader(Query)
+    testReader(QueryRep)
     testTag(Query)
     testTag(QueryRep)
     try:
