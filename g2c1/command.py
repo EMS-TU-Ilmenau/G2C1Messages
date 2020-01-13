@@ -116,14 +116,18 @@ class Reader:
         if not self.dev:
             raise AttributeError('Serial port not given upon instantiation')
 
+        assert all(b > 0 for b in msgBytes), 'Cannot send zero bytes because thats the termination char'
+
         for _ in range(2):
             self.dev.write(msgBytes+b'\0') # send
             resp = self.dev.read_until(b'\0') # receive
             if b'1' in resp:
                 break
+            else:
+                print('Re-sending')
         
         if b'1' not in resp:
-            print('sending {} was not successful'.format(msgBytes))
+            print('Sending {} was not successful'.format(msgBytes))
 
     def sendMsg(self, msg):
         '''
