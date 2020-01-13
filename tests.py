@@ -99,7 +99,7 @@ def testPhysical():
     from scipy import signal # for filtering
 
     tariUs = 12 # reader data-0 length in us
-    freqMHz = 866 # reader center frequency
+    freqMHz = 866.3 # reader center frequency
     blfMHz = 0.32 # tag backscatter link frequency
     
     # generate pulses
