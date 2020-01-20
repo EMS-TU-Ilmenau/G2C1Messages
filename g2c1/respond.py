@@ -38,7 +38,7 @@ class Tag:
             samples += [sMax]
 
         # very simple algorithm at the moment
-        thresh = 0.5*(sMin+sMax)
+        thresh = 0.3*(sMin+sMax)
         def binLevel(sample):
             return 1. if sample > thresh else 0.
         
