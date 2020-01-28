@@ -68,13 +68,16 @@ class Tag:
         :returns: list of 0/1 ints per command
         '''
         bits = []
+        def collectBits():
+            if self.bits:
+                bits.append(self.bits)
+        
         dNew = 0
         for edge in edges:
             dOld = dNew
             dNew = edge
             if dNew > 250:
-                if self.bits:
-                    bits.append(self.bits)
+                collectBits()
                 self.reset()
             # wait for reader -> tag calibration symbol
             if not self.rtCal:
@@ -87,8 +90,6 @@ class Tag:
                 else:
                     self.bits.append(1 if dNew > self.rtCal/2 else 0) # data
         
-        # add remaining bits
-        if self.bits:
-            bits.append(self.bits)
-        
+        collectBits() # get remaining bits
+
         return bits if len(bits) > 1 else bits[0]
