@@ -47,7 +47,7 @@ def testMessage(Msg, validValues, validBits):
 
     # test to values
     msgEmpty = Msg(*(len(validValues)*[None]))
-    msgEmpty.toValue(validBits)
+    msgEmpty.fromBits(validBits)
     if not all(v == part.value for v, part in zip(validValues, msgEmpty.parts[1:])):
         raise ValueError('Invalid values in {} for bits {}'.format(msgEmpty, validBits))
 
@@ -179,7 +179,7 @@ def testPhysical():
     bits = tag.fromEdges(edges)
     print('Parsed bits: {}'.format(bits))
     msgEmpty = Query()
-    msgEmpty.toValue(bits)
+    msgEmpty.fromBits(bits)
     print('Parsed message: {}'.format(msgEmpty))
 
 

@@ -72,7 +72,7 @@ class Part:
         self.value = value
     
 
-    def toValue(self, bits):
+    def fromBits(self, bits):
         '''
         :param bits: list of 0/1 ints
         '''
@@ -97,7 +97,7 @@ class Value(Part):
     '''
     Binary expression of a value and vice versa
     '''
-    def toValue(self, bits):
+    def fromBits(self, bits):
         self.value = int(self._bitStr(bits), 2)
     
 
@@ -125,7 +125,7 @@ class LookUp(Part):
         self.combos[self._bitStr(bits)] = value
     
 
-    def toValue(self, bits):
+    def fromBits(self, bits):
         self.value = self.combos.get(self._bitStr(bits))
     
 
@@ -179,7 +179,7 @@ class Message:
         return sum(part.nBits for part in self.parts)
     
 
-    def toValue(self, bits):
+    def fromBits(self, bits):
         '''
         Converts the bits into parts value
 
@@ -197,7 +197,7 @@ class Message:
             parseBits = bits[bitSum:bitSum+part.nBits]
             bitSum += part.nBits
             # convert to value and store in part
-            part.toValue(parseBits)
+            part.fromBits(parseBits)
     
 
     def toBits(self):
