@@ -231,3 +231,5 @@ if __name__ == '__main__':
         testPhysical()
     except ImportError:
         print('Physical test requires additional packages')
+    except IOError:
+        print('No device for physical test found')
