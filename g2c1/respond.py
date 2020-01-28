@@ -16,6 +16,7 @@ class Tag:
         '''
         self.rtCal = None
         self.trCal = None
+        self.bits = []
     
 
     def fromSamples(self, samples, samplerate=1e6, synth=False):
@@ -64,26 +65,30 @@ class Tag:
         from reader pulses to reader command bits
 
         :param edges: list of durations in us
-        :returns: list of 0/1 ints
+        :returns: list of 0/1 ints per command
         '''
         bits = []
         dNew = 0
         for edge in edges:
             dOld = dNew
             dNew = edge
-            if dNew > 100:
+            if dNew > 250:
+                if self.bits:
+                    bits.append(self.bits)
                 self.reset()
             # wait for reader -> tag calibration symbol
             if not self.rtCal:
-                if dOld >= self.MIN_TARI and dOld <= self.MAX_TARI:
+                if self.MIN_TARI <= dOld <= self.MAX_TARI:
                     self.rtCal = dNew # valid rtCal duration
-                else:
-                    self.reset() # unexpected symbol after aquiring tari
             else:
                 # wait either for tag -> reader calibration symbol OR data
-                if not self.trCal and dNew >= 1.1*self.rtCal and dNew <= 3*self.rtCal:
+                if not self.trCal and 1.1*self.rtCal <= dNew <= 3*self.rtCal:
                     self.trCal = dNew # full reader -> tag preamble (query command)
                 else:
-                    bits.append(1 if dNew > self.rtCal/2 else 0) # data
+                    self.bits.append(1 if dNew > self.rtCal/2 else 0) # data
         
-        return bits
+        # add remaining bits
+        if self.bits:
+            bits.append(self.bits)
+        
+        return bits if len(bits) > 1 else bits[0]
