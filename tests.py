@@ -1,5 +1,5 @@
 from g2c1.base import crc5, pulsesToSamples # to test checksum and convert pulses to samples
-from g2c1.messages import Query, QueryRep # to test commands
+from g2c1.messages import Query, QueryRep, fromBits # to test commands
 from g2c1.command import Reader # to test reader functionalities
 from g2c1.respond import Tag # to test tag functionalities
 
@@ -50,6 +50,11 @@ def testMessage(Msg, validValues, validBits):
     msgEmpty.fromBits(validBits)
     if not all(v == part.value for v, part in zip(validValues, msgEmpty.parts[1:])):
         raise ValueError('Invalid values in {} for bits {}'.format(msgEmpty, validBits))
+
+    # test lookup
+    msgLookup = fromBits(validBits)
+    if msgLookup != msg:
+        raise ValueError('Invalid values in looked up message {} from bits {}'.format(msgLookup, validBits))
 
 
 def testReader(Msg):
