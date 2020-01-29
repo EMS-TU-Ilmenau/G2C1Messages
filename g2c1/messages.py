@@ -5,6 +5,8 @@ class Query(Message):
     '''
     Reader query command
     '''
+    cmd = Constant([1, 0, 0, 0], 'Query')
+
     def __init__(self, dr=64/3, m=1, trExt=False, sel='all1', session=1, target='a', q=0):
         '''
         :param dr: divide ration. 
@@ -25,7 +27,6 @@ class Query(Message):
         # add parts
         
         # command
-        self.cmd = Constant([1, 0, 0, 0], 'Query')
         self.add(self.cmd)
         
         # divide ratio
@@ -75,6 +76,8 @@ class QueryRep(Message):
     '''
     Reader query repeat command
     '''
+    cmd = Constant([0, 0], 'QueryRep')
+
     def __init__(self, session=1):
         '''
         :param session: session for the inventory round.
@@ -84,9 +87,35 @@ class QueryRep(Message):
         # add parts
         
         # command
-        self.cmd = Constant([0, 0], 'QueryRep')
         self.add(self.cmd)
 
         # session
         self.session = Value(2, session)
         self.add(self.session)
+
+
+_messages = (
+    Query, 
+    QueryRep
+)
+
+
+def fromBits(bits):
+    '''
+    Looks up message from bits
+
+    :param bits: list of 0/1 ints
+    :returns: instance of message
+    '''
+    for Msg in _messages:
+        cmdBits = Msg.cmd.toBits()
+        nCmdBits = len(cmdBits)
+        # check if command ID in bits
+        if len(bits) >= nCmdBits:
+            if cmdBits == bits[:nCmdBits]:
+                # build message from bits
+                msg = Msg()
+                msg.fromBits(bits)
+                return msg
+    
+    raise LookupError('No message type found associated with {}'.format(bits))
