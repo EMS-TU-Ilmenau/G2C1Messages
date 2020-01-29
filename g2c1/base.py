@@ -160,8 +160,15 @@ class Message:
         self.parts = [] # parts of the message without checksum
     
 
-    def __str__(self):
+    def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, ', '.join(str(p.value) for p in self.parts[1:]))
+    
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return all(sPart.value == oPart.value for sPart, oPart in zip(self.parts, other.parts))
+        else:
+            return False
     
 
     def add(self, part):
