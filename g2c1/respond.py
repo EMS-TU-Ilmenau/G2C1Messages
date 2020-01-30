@@ -136,4 +136,5 @@ class Tag:
         try:
             self.command = fromBits(self.bits)
         except LookupError:
-            print('Could not lookup command message from bits {}'.format(self.bits))
+            print('Could not lookup command message from bits {} (edges: {})'.format(
+                self.bits, ', '.join('{:.1f}'.format(e) for e in edges)))
