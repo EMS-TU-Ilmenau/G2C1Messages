@@ -161,7 +161,7 @@ class Message:
     
 
     def __repr__(self):
-        return '{}({})'.format(self.__class__.__name__, ', '.join(str(p.value) for p in self.parts[1:]))
+        return '{}({})'.format(self.__class__.__name__, ', '.join(str(p.value)[:5] for p in self.parts[1:]))
     
 
     def __eq__(self, other):
