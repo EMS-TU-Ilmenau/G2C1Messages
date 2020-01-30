@@ -123,4 +123,7 @@ class Tag:
                         break # end of command
                     self.bits.append(1 if dNew > self.rtCal/2 else 0) # data
         
-        self.command = fromBits(self.bits)
+        try:
+            self.command = fromBits(self.bits)
+        except KeyError:
+            print('Could not lookup command message from bits {}'.format(self.bits))
