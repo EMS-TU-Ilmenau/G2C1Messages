@@ -54,19 +54,26 @@ class Tag:
             # insert synthetic end
             samples += [sMax]
         
-        # convert to binary levels
-        thresh = 0.3*(sMin+sMax)
-        binLevels = [1 if sample > thresh else 0 for sample in samples]
+        # prepare schmitt trigger
+        delta = sMax-sMin
+        hyst = 0.1
+        mid = 0.3*(sMin+sMax)
+        threshHigh = mid+hyst*delta
+        threshLow = mid-hyst*delta
+        raised = False
 
         # get raising edges
         edges = []
         iOldRaising = 0
-        for iSample in range(len(binLevels)-1):
-            if binLevels[iSample+1] > binLevels[iSample]:
+        for iSample, level in enumerate(samples):
+            if level > threshHigh and not raised:
                 # raising edge occured
-                iNewRaising = iSample+1
-                edges.append(1e6*(iNewRaising-iOldRaising)/samplerate)
-                iOldRaising = iNewRaising
+                raised = True
+                edge = 1e6*(iSample-iOldRaising)/samplerate
+                iOldRaising = iSample
+                edges.append(edge)
+            if level < threshLow and raised:
+                raised = False
         
         return edges
     
@@ -123,7 +130,10 @@ class Tag:
                         break # end of command
                     self.bits.append(1 if dNew > self.rtCal/2 else 0) # data
         
+        if not self.bits:
+            raise ValueError('No bits in edges {}'.format(edges))
+
         try:
             self.command = fromBits(self.bits)
-        except KeyError:
+        except LookupError:
             print('Could not lookup command message from bits {}'.format(self.bits))
