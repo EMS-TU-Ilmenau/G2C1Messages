@@ -1,9 +1,13 @@
 from .base import Constant, LookUp, Value, Message, crc5 # to generate message bits and checksum
 
+'''
+Messages according to EPCglobal Gen2 Specifications v2.0.0
+'''
 
 class Query(Message):
     '''
     Reader query command
+    6.3.2.12.2.1
     '''
     cmd = Constant([1, 0, 0, 0], 'Query')
 
@@ -72,9 +76,46 @@ class Query(Message):
         self.add(self.q)
 
 
+class QueryAdjust(Message):
+    '''
+    Reader query adjust command
+    6.3.2.12.2.2
+    '''
+    cmd = Constant([1, 0, 0, 1], 'QueryAdjust')
+
+    def __init__(self, session=1, upDn=0):
+        '''
+        :param session: session for the inventory round.
+            Can be 0, 1, 2 or 3
+        :param upDn: adjust tag's Q:
+            > 0: Q += 1, 
+              0: Q unchanged
+            < 0: Q -= 1
+        '''
+        Message.__init__(self)
+        # add parts
+        
+        # command
+        self.add(self.cmd)
+
+        # session
+        self.session = Value(2, session)
+        self.add(self.session)
+
+        # up/down
+        if upDn > 0: upDn = 1
+        if upDn < 0: upDn = -1
+        self.upDn = LookUp(3, upDn)
+        self.upDn.add([1, 1, 0], 1)
+        self.upDn.add([0, 0, 0], 0)
+        self.upDn.add([0, 1, 1], -1)
+        self.add(self.upDn)
+
+
 class QueryRep(Message):
     '''
     Reader query repeat command
+    6.3.2.12.2.3
     '''
     cmd = Constant([0, 0], 'QueryRep')
 
@@ -94,9 +135,50 @@ class QueryRep(Message):
         self.add(self.session)
 
 
+class ACK(Message):
+    '''
+    Reader acknowledges a tag's RN16
+    6.3.2.12.2.4
+    '''
+    cmd = Constant([0, 1], 'ACK')
+
+    def __init__(self, rn=0):
+        '''
+        :param rn: tag's backscattered RN16 
+            (random number as a handle for further communication)
+        '''
+        Message.__init__(self)
+        # add parts
+        
+        # command
+        self.add(self.cmd)
+
+        # RN16
+        self.rn = Value(16, rn)
+        self.add(self.rn)
+
+
+class NAK(Message):
+    '''
+    Tag shall return to the arbitrate state
+    6.3.2.12.2.5
+    '''
+    cmd = Constant([1, 1, 0, 0, 0, 0, 0, 0], 'NAK')
+
+    def __init__(self):
+        Message.__init__(self)
+        # add parts
+        
+        # command
+        self.add(self.cmd)
+
+
 _messages = (
     Query, 
-    QueryRep
+    QueryAdjust, 
+    QueryRep, 
+    ACK, 
+    NAK
 )
 
 
