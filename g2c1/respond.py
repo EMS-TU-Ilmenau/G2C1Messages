@@ -37,36 +37,34 @@ class Tag:
             samples = start+samples
             # insert synthetic end
             samples += [sMax]
-
-        # very simple algorithm at the moment
+        
+        # convert to binary levels
         thresh = 0.3*(sMin+sMax)
-        def binLevel(sample):
-            return 1. if sample > thresh else 0.
-        
-        oldLevel = binLevel(samples[0])
-        raisedTime = 0.
+        binLevels = [1 if sample > thresh else 0 for sample in samples]
+
+        # get raising edges
         edges = []
-        for sample in samples:
-            newLevel = binLevel(sample)
-            # raising edge
-            if newLevel > oldLevel:
-                edges.append(raisedTime*1e6)
-                raisedTime = 0. # reset
-            
-            raisedTime += 1./samplerate # count duration
-            oldLevel = newLevel # remember old binary level
+        iOldRaising = 0
+        for iSample in range(len(binLevels)-1):
+            if binLevels[iSample+1] > binLevels[iSample]:
+                # raising edge occured
+                iNewRaising = iSample+1
+                edges.append(1e6*(iNewRaising-iOldRaising)/samplerate)
+                iOldRaising = iNewRaising
         
-        return edges[1:]
+        return edges
     
 
-    def fromEdges(self, edges):
+    def fromEdges(self, edges, tolerance=0.5):
         '''
         Converts durations between raising edges 
         from reader pulses to reader command bits
 
         :param edges: list of durations in us
+        :param tolerance: pulse length tolerance in us
         :returns: list of 0/1 ints per command
         '''
+        self.reset()
         bits = []
         def collectBits():
             if self.bits:
@@ -79,13 +77,13 @@ class Tag:
             if dNew > 250:
                 collectBits()
                 self.reset()
-            # wait for reader -> tag calibration symbol
-            if not self.rtCal:
-                if self.MIN_TARI <= dOld <= self.MAX_TARI:
+            elif not self.rtCal:
+                # wait for reader -> tag calibration symbol
+                if self.MIN_TARI-tolerance <= dOld <= self.MAX_TARI+tolerance:
                     self.rtCal = dNew # valid rtCal duration
             else:
                 # wait either for tag -> reader calibration symbol OR data
-                if not self.trCal and 1.1*self.rtCal <= dNew <= 3*self.rtCal:
+                if not self.trCal and 1.1*self.rtCal-tolerance <= dNew <= 3*self.rtCal+tolerance:
                     self.trCal = dNew # full reader -> tag preamble (query command)
                 else:
                     self.bits.append(1 if dNew > self.rtCal/2 else 0) # data
