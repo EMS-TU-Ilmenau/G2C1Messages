@@ -1,3 +1,6 @@
+from .messages import Query, fromBits # to get type of special message
+
+
 class Tag:
     '''
     Parses pulses from commander and respond 
@@ -5,21 +8,34 @@ class Tag:
     '''
     MIN_TARI = 6.25
     MAX_TARI = 25
+    EDGE_SPLIT_THRESH = 250
 
     def __init__(self):
         self.reset()
+        self.command = None
+    
+
+    @property
+    def blfMHz(self):
+        '''
+        :returns: tag backscatter frequency configured by last reader Query
+        '''
+        if isinstance(self.command, Query):
+            return self.command.dr/self.trCal
+        else:
+            raise AttributeError('Did not parse a Query command yet')
     
 
     def reset(self):
         '''
-        Resets all parsed values
+        Resets all parsed values from last reader command
         '''
         self.rtCal = None
         self.trCal = None
         self.bits = []
     
 
-    def fromSamples(self, samples, samplerate=1e6, synth=False):
+    def samplesToEdges(self, samples, samplerate=1e6, synth=False):
         '''
         Converts sample magnitudes to raising edge durations
 
@@ -55,39 +71,56 @@ class Tag:
         return edges
     
 
-    def fromEdges(self, edges, tolerance=0.5):
+    def splitEdges(self, edges):
         '''
-        Converts durations between raising edges 
-        from reader pulses to reader command bits
+        :param edges: list of durations in us
+        :returns: list of valid reader command edges
+        '''
+        arrs = []
+        subArr = []
+        for edge in edges:
+            if edge > self.EDGE_SPLIT_THRESH:
+                # split and get collected
+                if subArr:
+                    arrs.append(subArr)
+                    subArr = [] # reset
+            else:
+                # collect
+                subArr.append(edge)
+        
+        if subArr:
+            # get remaining collected
+            arrs.append(subArr)
+        
+        return arrs
+    
+
+    def fromEdges(self, edges):
+        '''
+        Converts durations between raising edges from reader pulses 
+        to reader command bits of exactly one reader command (!). 
+        To parse more than one command, use the splitEdges method 
+        before to separate the commands.
 
         :param edges: list of durations in us
-        :param tolerance: pulse length tolerance in us
-        :returns: list of 0/1 ints per command
         '''
         self.reset()
-        bits = []
-        def collectBits():
-            if self.bits:
-                bits.append(self.bits)
-        
+
         dNew = 0
         for edge in edges:
             dOld = dNew
             dNew = edge
-            if dNew > 250:
-                collectBits()
-                self.reset()
-            elif not self.rtCal:
+            if not self.rtCal:
                 # wait for reader -> tag calibration symbol
-                if self.MIN_TARI-tolerance <= dOld <= self.MAX_TARI+tolerance:
+                if self.MIN_TARI <= dOld <= self.MAX_TARI:
                     self.rtCal = dNew # valid rtCal duration
             else:
                 # wait either for tag -> reader calibration symbol OR data
-                if not self.trCal and 1.1*self.rtCal-tolerance <= dNew <= 3*self.rtCal+tolerance:
+                if not self.trCal and 1.1*self.rtCal <= dNew <= 3*self.rtCal:
                     self.trCal = dNew # full reader -> tag preamble (query command)
                 else:
+                    if dNew > self.EDGE_SPLIT_THRESH:
+                        break # end of command
                     self.bits.append(1 if dNew > self.rtCal/2 else 0) # data
         
-        collectBits() # get remaining bits
-
-        return bits if len(bits) > 1 else bits[0]
+        self.command = fromBits(self.bits)

@@ -78,17 +78,24 @@ def testTag(Msg):
     print('Testing responder with {}'.format(msg))
     pulses = reader.toPulses(msg)
     samples = pulsesToSamples(pulses)
+    
     # try to parse with tag
     tag = Tag()
-    edges = tag.fromSamples(samples, synth=True)
-    bits = tag.fromEdges(edges)
+    edges = tag.samplesToEdges(samples, synth=True)
+    tag.fromEdges(edges)
+    
     # check if same
-    if bits != msg.toBits():
+    if tag.bits != msg.toBits():
         print('actual pulses: {}'.format(pulses))
         print('parsed edge durations: {}'.format(edges))
-        print('parsed bits: {}'.format(bits))
+        print('parsed bits: {}'.format(tag.bits))
         print('actual bits: {}'.format(msg.toBits()))
         raise ValueError('Invalid parsed bits')
+
+    # check if messages was parsed
+    if tag.command != msg:
+        print(tag.command)
+        raise TypeError('Bits where not converted to correct message')
 
 
 def testPhysical():
@@ -179,13 +186,11 @@ def testPhysical():
 
     # try to parse with tag
     tag = Tag()
-    edges = tag.fromSamples(np.abs(samples), sdr.sample_rate)
+    edges = tag.samplesToEdges(np.abs(samples), sdr.sample_rate)
     print('Parsed raising edge durations: {}'.format(edges))
-    bits = tag.fromEdges(edges)
-    print('Parsed bits: {}'.format(bits))
-    msgEmpty = Query()
-    msgEmpty.fromBits(bits)
-    print('Parsed message: {}'.format(msgEmpty))
+    tag.fromEdges(edges)
+    print('Parsed bits: {}'.format(tag.bits))
+    print('Parsed message: {}'.format(tag.command))
 
 
 def testPhysicalQueryCombos():
