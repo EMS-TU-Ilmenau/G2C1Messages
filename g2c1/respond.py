@@ -123,7 +123,7 @@ class Tag:
                     self.rtCal = dNew # valid rtCal duration
             else:
                 # wait either for tag -> reader calibration symbol OR data
-                if not self.trCal and 1.1*self.rtCal <= dNew <= 3*self.rtCal:
+                if not self.trCal and self.rtCal <= dNew <= 3*self.rtCal:
                     self.trCal = dNew # full reader -> tag preamble (query command)
                 else:
                     if dNew > self.EDGE_SPLIT_THRESH:
