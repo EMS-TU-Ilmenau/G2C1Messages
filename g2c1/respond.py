@@ -12,7 +12,6 @@ class Tag:
 
     def __init__(self):
         self.reset()
-        self.command = None
         self.blf = None
     
 
@@ -31,6 +30,7 @@ class Tag:
         self.rtCal = None
         self.trCal = None
         self.bits = []
+        self.command = None
     
 
     def samplesToEdges(self, samples, samplerate=1e6, synth=False):
