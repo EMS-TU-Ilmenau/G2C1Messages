@@ -1,6 +1,22 @@
 from .messages import Query, fromBits # to get type of special message
 
 
+class ReceivedCommand:
+    '''
+    Meta infos and parsed message from a reader command
+    '''
+    def __init__(self):
+        self.tari = None # data-0 length in us
+        self.rtCal = None # reader -> tag calibration symbol length in us
+        self.trCal = None # tag -> reader calibration symbol length in us
+        self.edges = [] # durations between raising edges of the command in us
+        self.bits = [] # parsed command data bits
+        self.message = None # command message object
+        self.blf = None # backscatter frequency in MHz
+        self.start = 0. # begin of command in us
+        self.end = 0. # end of command in us
+
+
 class Tag:
     '''
     Parses pulses from commander and respond 
@@ -8,30 +24,7 @@ class Tag:
     '''
     MIN_TARI = 6.25
     MAX_TARI = 25
-    EDGE_SPLIT_THRESH = 250
 
-    def __init__(self):
-        self.reset()
-        self.command = None
-        self.blf = None
-    
-
-    @property
-    def blfMHz(self):
-        '''
-        :returns: tag backscatter frequency configured by last reader Query
-        '''
-        return self.blf
-    
-
-    def reset(self):
-        '''
-        Resets all parsed values from last reader command
-        '''
-        self.rtCal = None
-        self.trCal = None
-        self.bits = []
-    
 
     def samplesToEdges(self, samples, samplerate=1e6, synth=False):
         '''
@@ -76,69 +69,63 @@ class Tag:
         return edges
     
 
-    def splitEdges(self, edges):
-        '''
-        :param edges: list of durations in us
-        :returns: list of valid reader command edges
-        '''
-        arrs = []
-        subArr = []
-        for edge in edges:
-            if edge > self.EDGE_SPLIT_THRESH:
-                # split and get collected
-                if subArr:
-                    arrs.append(subArr)
-                    subArr = [] # reset
-            else:
-                # collect
-                subArr.append(edge)
-        
-        if subArr:
-            # get remaining collected
-            arrs.append(subArr)
-        
-        return arrs
-    
-
     def fromEdges(self, edges):
         '''
-        Converts durations between raising edges from reader pulses 
-        to reader command bits of exactly one reader command (!). 
-        To parse more than one command, use the splitEdges method 
-        before to separate the commands.
+        Parses durations between raising edges from reader pulses 
+        to collect the data bits, meta infos and corresponding messages
 
         :param edges: list of durations in us
+        :returns: list of received commands
         '''
-        self.reset()
+        iStart = 0
+        recCmds = []
+        recCmd = ReceivedCommand()
+        def finish():
+            recCmd.end = sum(edges[:iEdge])
+            recCmd.edges = edges[iStart:iEdge]
+            recCmds.append(recCmd) # collect finished command
 
-        dNew = 0
-        for edge in edges:
+        # get command data bits and meta infos
+        dNew = 0.
+        for iEdge, edge in enumerate(edges):
             dOld = dNew
             dNew = edge
-            if not self.rtCal:
+            if not recCmd.rtCal:
                 # wait for reader -> tag calibration symbol
                 if self.MIN_TARI <= dOld <= self.MAX_TARI:
-                    self.rtCal = dNew # valid rtCal duration
+                    recCmd.tari = dOld # get tari
+                    recCmd.rtCal = dNew # valid rtCal duration
+                    iStart = iEdge-1
+                    recCmd.start = sum(edges[:iStart]) # get command start
             else:
                 # wait either for tag -> reader calibration symbol OR data
-                if not self.trCal and self.rtCal <= dNew <= 3*self.rtCal:
-                    self.trCal = dNew # full reader -> tag preamble (query command)
+                if not recCmd.trCal and recCmd.rtCal <= dNew <= 3*recCmd.rtCal:
+                    recCmd.trCal = dNew # full reader -> tag preamble (query command)
                 else:
-                    if dNew > self.rtCal:
-                        break # end of command
-                    self.bits.append(1 if dNew > self.rtCal/2 else 0) # data
+                    if dNew > recCmd.rtCal:
+                        # end of command
+                        finish()
+                        recCmd = ReceivedCommand() # make new command
+                    else:
+                        recCmd.bits.append(1 if dNew > recCmd.rtCal/2 else 0) # data
         
-        if not self.bits:
-            raise ValueError('No bits in edges {}'.format(edges))
+        # collect finished command
+        iEdge += 1
+        finish()
 
-        # convert bits to message
-        try:
-            self.command = fromBits(self.bits)
-        except LookupError:
-            self.command = None
-            print('Could not lookup command message from bits {} (edges: {})'.format(
-                self.bits, ', '.join('{:.1f}'.format(e) for e in edges)))
+        # convert command data bits to messages
+        for recCmd in recCmds:
+            if recCmd.bits:
+                try:
+                    recCmd.message = fromBits(recCmd.bits)
+                except LookupError:
+                    Warning('Could not lookup command message from bits {} (edges: {})'.format(
+                        recCmd.bits, ', '.join('{:.1f}'.format(e) for e in recCmd.edges)))
+                
+                # calculate backscatter if message was Query
+                if isinstance(recCmd.message, Query):
+                    recCmd.blf = recCmd.message.dr.value/recCmd.trCal
+            else:
+                Warning('Could not parse bits from edges: {}'.format(recCmd.edges))
         
-        # calculate backscatter if message was Query
-        if isinstance(self.command, Query):
-            self.blf = self.command.dr.value/self.trCal
+        return recCmds

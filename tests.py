@@ -82,19 +82,19 @@ def testTag(Msg):
     # try to parse with tag
     tag = Tag()
     edges = tag.samplesToEdges(samples, synth=True)
-    tag.fromEdges(edges)
+    cmd = tag.fromEdges(edges)[0]
     
     # check if same
-    if tag.bits != msg.toBits():
+    if cmd.bits != msg.toBits():
         print('actual pulses: {}'.format(pulses))
         print('parsed edge durations: {}'.format(edges))
-        print('parsed bits: {}'.format(tag.bits))
+        print('parsed bits: {}'.format(cmd.bits))
         print('actual bits: {}'.format(msg.toBits()))
         raise ValueError('Invalid parsed bits')
 
     # check if messages was parsed
-    if tag.command != msg:
-        print(tag.command)
+    if cmd.message != msg:
+        print(cmd.message)
         raise TypeError('Bits where not converted to correct message')
 
 
@@ -116,27 +116,32 @@ def testPhysical():
     
     # generate pulses
     reader = Reader(tariUs, blfMHz, 'COM4')
-    msg = Query(m=8, trExt=True, target='a', q=0)
-    print('Testing physically with {}'.format(msg))
-    '''
-    # visualize/debug
-    pulses = reader.toPulses(msg, True)
-    print(pulses)
-    visualizePulses(pulses)
-    '''
 
     # init sdr
     sdr = RtlSdr(serial_number='00000001')
     sdr.sample_rate = 2.048e6
     sdr.center_freq = freqMHz*1e6
     sdr.gain = 0
+    sdr.read_samples(sdr.sample_rate*0.05) # dummy read
 
     # get samples asyncronously...
     pool = ThreadPool(processes=1)
     sampling = pool.apply_async(sdr.read_samples, (sdr.sample_rate*0.05,))
     # ...while sending command
     reader.enablePower()
+
+    msg = Query(m=8, trExt=True)
+    print('Testing physically with {}'.format(msg))
     reader.sendMsg(msg)
+
+    msg = Query(m=1, trExt=False, q=1)
+    print('Testing physically with {}'.format(msg))
+    reader.sendMsg(msg)
+
+    msg = QueryRep()
+    print('Testing physically with {}'.format(msg))
+    reader.sendMsg(msg)
+
     reader.enablePower(False)
     # block until samples are aquired
     samples = sampling.get()
@@ -150,7 +155,7 @@ def testPhysical():
     ax1.set_xlabel('time [s]')
     ax1.set_ylabel('magnitude')
     ax1.set_title('Observed communication with \n'
-        'tari: {}us, freq: {}MHz, blf: {}MHz, {}'.format(tariUs, freqMHz, blfMHz, msg))
+        'tari: {}us, freq: {}MHz, blf: {}MHz'.format(tariUs, freqMHz, blfMHz))
     ax1.grid()
     
     # frequency domain
@@ -182,15 +187,27 @@ def testPhysical():
     ax3.set_xlabel('time [s]')
     ax3.set_ylabel('frequency [MHz]')
 
-    plt.show()
-
     # try to parse with tag
     tag = Tag()
     edges = tag.samplesToEdges(np.abs(samples), sdr.sample_rate)
     print('Parsed raising edge durations: {}'.format(edges))
-    tag.fromEdges(edges)
-    print('Parsed bits: {}'.format(tag.bits))
-    print('Parsed message: {}'.format(tag.command))
+    cmds = tag.fromEdges(edges)
+    for cmd in cmds:
+        print('Parsed edges: {}'.format(cmd.edges))
+        print('Parsed bits: {}'.format(cmd.bits))
+        print('Parsed message: {}'.format(cmd.message))
+        if cmd.blf:
+            print('Parsed BLF: {} kHz'.format(int(cmd.blf*1e3)))
+        print('Parsed Tari: {} us'.format(cmd.tari))
+        ax1.axvline(cmd.start/1e6, color='g')
+        ax1.axvline(cmd.end/1e6, color='g')
+        txt = str(cmd.bits) if not cmd.message else str(cmd.message)
+        txt += '\nTari: {:.1f} us'.format(cmd.tari)
+        if cmd.blf:
+            txt += ', BLF: {} kHz'.format(int(cmd.blf*1e3))
+        ax1.text(cmd.start/1e6, 0.5*np.max(np.abs(samples)), txt, color='g', backgroundcolor='w')
+    
+    plt.show()
 
 
 def testPhysicalQueryCombos():
