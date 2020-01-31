@@ -13,6 +13,7 @@ class Tag:
     def __init__(self):
         self.reset()
         self.command = None
+        self.blf = None
     
 
     @property
@@ -20,10 +21,7 @@ class Tag:
         '''
         :returns: tag backscatter frequency configured by last reader Query
         '''
-        if isinstance(self.command, Query):
-            return self.command.dr/self.trCal
-        else:
-            raise AttributeError('Did not parse a Query command yet')
+        return self.blf
     
 
     def reset(self):
@@ -133,8 +131,13 @@ class Tag:
         if not self.bits:
             raise ValueError('No bits in edges {}'.format(edges))
 
+        # convert bits to message
         try:
             self.command = fromBits(self.bits)
         except LookupError:
             print('Could not lookup command message from bits {} (edges: {})'.format(
                 self.bits, ', '.join('{:.1f}'.format(e) for e in edges)))
+        
+        # calculate backscatter if message was Query
+        if isinstance(self.command, Query):
+            self.blf = self.command.dr/self.trCal
