@@ -118,7 +118,7 @@ class Tag:
             if recCmd.bits:
                 try:
                     recCmd.message = fromBits(recCmd.bits)
-                except LookupError:
+                except:
                     Warning('Could not lookup command message from bits {} (edges: {})'.format(
                         recCmd.bits, ', '.join('{:.1f}'.format(e) for e in recCmd.edges)))
                 
