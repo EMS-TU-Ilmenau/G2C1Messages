@@ -77,55 +77,54 @@ class Tag:
         :param edges: list of durations in us
         :returns: list of received commands
         '''
-        iStart = 0
-        recCmds = []
-        recCmd = ReceivedCommand()
+        cmds = []
+        cmd = ReceivedCommand()
         def finish():
-            recCmd.end = sum(edges[:iEdge])
-            recCmd.edges = edges[iStart:iEdge]
-            recCmds.append(recCmd) # collect finished command
+            cmd.end = sum(edges[:iEdge])
+            cmd.edges = edges[iStart:iEdge]
+            cmds.append(cmd) # collect finished command
 
         # get command data bits and meta infos
         dNew = 0.
         for iEdge, edge in enumerate(edges):
             dOld = dNew
             dNew = edge
-            if not recCmd.rtCal:
+            if not cmd.rtCal:
                 # wait for reader -> tag calibration symbol
                 if self.MIN_TARI <= dOld <= self.MAX_TARI:
-                    recCmd.tari = dOld # get tari
-                    recCmd.rtCal = dNew # valid rtCal duration
+                    cmd.tari = dOld # get tari
+                    cmd.rtCal = dNew # valid rtCal duration
                     iStart = iEdge-1
-                    recCmd.start = sum(edges[:iStart]) # get command start
+                    cmd.start = sum(edges[:iStart]) # get command start
             else:
                 # wait either for tag -> reader calibration symbol OR data
-                if not recCmd.trCal and recCmd.rtCal <= dNew <= 3*recCmd.rtCal:
-                    recCmd.trCal = dNew # full reader -> tag preamble (query command)
+                if not cmd.trCal and cmd.rtCal <= dNew <= 3*cmd.rtCal:
+                    cmd.trCal = dNew # full reader -> tag preamble (query command)
                 else:
-                    if dNew > recCmd.rtCal:
+                    if dNew > cmd.rtCal:
                         # end of command
                         finish()
-                        recCmd = ReceivedCommand() # make new command
+                        cmd = ReceivedCommand() # make new command
                     else:
-                        recCmd.bits.append(1 if dNew > recCmd.rtCal/2 else 0) # data
+                        cmd.bits.append(1 if dNew > cmd.rtCal/2 else 0) # data
         
         # collect finished command
         iEdge += 1
         finish()
 
         # convert command data bits to messages
-        for recCmd in recCmds:
-            if recCmd.bits:
+        for cmd in cmds:
+            if cmd.bits:
                 try:
-                    recCmd.message = fromBits(recCmd.bits)
+                    cmd.message = fromBits(cmd.bits)
                 except:
-                    Warning('Could not lookup command message from bits {} (edges: {})'.format(
-                        recCmd.bits, ', '.join('{:.1f}'.format(e) for e in recCmd.edges)))
+                    print('Could not lookup command message from bits {} (edges: {})'.format(
+                        cmd.bits, ', '.join('{:.1f}'.format(e) for e in cmd.edges)))
                 
                 # calculate backscatter if message was Query
-                if isinstance(recCmd.message, Query):
-                    recCmd.blf = recCmd.message.dr.value/recCmd.trCal
+                if isinstance(cmd.message, Query):
+                    cmd.blf = cmd.message.dr.value/cmd.trCal
             else:
-                Warning('Could not parse bits from edges: {}'.format(recCmd.edges))
+                print('Could not parse bits from edges: '+', '.join('{:.1f}'.format(e) for e in cmd.edges))
         
-        return recCmds
+        return cmds
