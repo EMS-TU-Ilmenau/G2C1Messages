@@ -12,6 +12,7 @@ class Tag:
 
     def __init__(self):
         self.reset()
+        self.command = None
         self.blf = None
     
 
@@ -30,7 +31,6 @@ class Tag:
         self.rtCal = None
         self.trCal = None
         self.bits = []
-        self.command = None
     
 
     def samplesToEdges(self, samples, samplerate=1e6, synth=False):
@@ -135,6 +135,7 @@ class Tag:
         try:
             self.command = fromBits(self.bits)
         except LookupError:
+            self.command = None
             print('Could not lookup command message from bits {} (edges: {})'.format(
                 self.bits, ', '.join('{:.1f}'.format(e) for e in edges)))
         
