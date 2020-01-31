@@ -140,4 +140,4 @@ class Tag:
         
         # calculate backscatter if message was Query
         if isinstance(self.command, Query):
-            self.blf = self.command.dr/self.trCal
+            self.blf = self.command.dr.value/self.trCal
