@@ -124,7 +124,7 @@ class Tag:
                 if not self.trCal and self.rtCal <= dNew <= 3*self.rtCal:
                     self.trCal = dNew # full reader -> tag preamble (query command)
                 else:
-                    if dNew > self.EDGE_SPLIT_THRESH:
+                    if dNew > self.rtCal:
                         break # end of command
                     self.bits.append(1 if dNew > self.rtCal/2 else 0) # data
         
