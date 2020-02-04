@@ -78,10 +78,11 @@ def testTag(Msg):
     print('Testing responder with {}'.format(msg))
     pulses = reader.toPulses(msg)
     samples = pulsesToSamples(pulses)
+    samples += [max(samples)] # artifical CW to trigger last raising edge
     
     # try to parse with tag
     tag = Tag()
-    edges = tag.samplesToEdges(samples, synth=True)
+    edges = tag.samplesToEdges(samples)
     cmd = tag.fromEdges(edges)[0]
     
     # check if same
