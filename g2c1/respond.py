@@ -26,31 +26,24 @@ class Tag:
     MAX_TARI = 25
 
 
-    def samplesToEdges(self, samples, samplerate=1e6, synth=False):
+    def samplesToEdges(self, samples, samplerate=1e6, mid=0.4):
         '''
         Converts sample magnitudes to raising edge durations
 
         :param samples: list of sample magnitudes
         :param samplerate: sample rate in Hz
-        :param synth: when set to True, extends the samples by artifical start and end
+        :param mid: ratio (0=low...1=high) to define middle level
         :returns: list of durations in us
         '''
         sMin = min(samples)
         sMax = max(samples)
         
-        if synth:
-            # insert sythetic start
-            start = [sMin]+int(100*samplerate*1e-6)*[sMax]
-            samples = start+samples
-            # insert synthetic end
-            samples += [sMax]
-        
         # prepare schmitt trigger
         delta = sMax-sMin
         hyst = 0.1
-        mid = 0.3*(sMin+sMax)
-        threshHigh = mid+hyst*delta
-        threshLow = mid-hyst*delta
+        threshMid = sMin+mid*delta
+        threshHigh = threshMid+hyst*delta
+        threshLow = threshMid-hyst*delta
         raised = False
 
         # get raising edges
@@ -80,9 +73,10 @@ class Tag:
         cmds = []
         cmd = ReceivedCommand()
         def finish():
-            cmd.end = sum(edges[:iEdge])
-            cmd.edges = edges[iStart:iEdge]
-            cmds.append(cmd) # collect finished command
+            if cmd.rtCal:
+                cmd.end = sum(edges[:iEdge])
+                cmd.edges = edges[iStart:iEdge]
+                cmds.append(cmd) # collect finished command
 
         # get command data bits and meta infos
         dNew = 0.
@@ -91,7 +85,7 @@ class Tag:
             dNew = edge
             if not cmd.rtCal:
                 # wait for reader -> tag calibration symbol
-                if self.MIN_TARI <= dOld <= self.MAX_TARI:
+                if self.MIN_TARI <= dOld <= self.MAX_TARI and 2*dOld <= dNew <= 3.5*dOld:
                     cmd.tari = dOld # get tari
                     cmd.rtCal = dNew # valid rtCal duration
                     iStart = iEdge-1
@@ -101,7 +95,7 @@ class Tag:
                 if not cmd.trCal and cmd.rtCal <= dNew <= 3*cmd.rtCal:
                     cmd.trCal = dNew # full reader -> tag preamble (query command)
                 else:
-                    if dNew > cmd.rtCal:
+                    if cmd.bits and dNew > cmd.rtCal:
                         # end of command
                         finish()
                         cmd = ReceivedCommand() # make new command
