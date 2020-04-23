@@ -188,10 +188,9 @@ class Message:
 
     def fromBits(self, bits):
         '''
-        Converts the bits into parts value
+        Converts the bits into message parts value
 
         :param bits: list of 0/1 ints
-        :returns: list of value/meaning of bits
         '''
         # sanity check
         if self.nBits > len(bits):
