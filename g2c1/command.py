@@ -130,14 +130,26 @@ class Reader:
             raise IOError('Sending {} was not successful'.format(msgBytes))
     
 
-    def sendMsg(self, msg):
+    def sendMsg(self, msg, transmit=True):
         '''
-        Starts transmission of message pulses via serial port
+        Sets message pulses via serial port and optionally starts transmission
 
         :param msg: message object
         '''
+        # set sequence pulses
         pulses = self.toPulses(msg, True)
         self.sendBytes(b'TX '+bytes(pulses))
+        
+        # optionally transmit them
+        if transmit:
+            self.transmit()
+    
+
+    def transmit(self):
+        '''
+        Starts transmission of pulse sequence set earlier
+        '''
+        self.sendBytes(b'TX')
     
 
     def enablePower(self, enable=True):
