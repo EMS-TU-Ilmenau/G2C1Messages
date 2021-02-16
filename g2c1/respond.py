@@ -116,7 +116,7 @@ class Tag:
                         cmd.bits, ', '.join('{:.1f}'.format(e) for e in cmd.edges)))
                 
                 # calculate backscatter if message was Query
-                if isinstance(cmd.message, Query):
+                if isinstance(cmd.message, Query) and cmd.trCal:
                     cmd.blf = cmd.message.dr.value/cmd.trCal
             else:
                 print('Could not parse bits from edges: '+', '.join('{:.1f}'.format(e) for e in cmd.edges))
